@@ -5,6 +5,7 @@ import time
 import json
 import pickle
 import pandas as pd
+from sanic.log import logger
 
 
 def countdown(n=500000000, rn=1):
@@ -26,19 +27,22 @@ class Predictor(ThreadRunner):
 
     def run(self):
         while True:
+            # print("###hello###")
             try:
                 # use non-block get
                 # block get may miss published message in Subscriber
                 # since using multithread
                 req = self.target_queue.get(False)
+                # print(req)
             except queue.Empty:
                 time.sleep(.1)
                 continue
 
-            if req is _sentinel:
+            if req == _sentinel:
                 self.target_queue.put(_sentinel)
+                print("Kiling Predictor...")
+                logger.warning("Kiling Predictor...")
                 break
-
             req = req.decode()
             # print(f"Predictor handling {req}")
             medexam = self.kvs.hget(req, "medexam")
@@ -58,3 +62,10 @@ class Predictor(ThreadRunner):
             self.kvs.publish('predicted', req)
 
         self.stop()
+        logger.warning("Predictor dead")
+
+    # def run(self):
+    #     try:
+    #         self.__run()
+    #     except KeyboardInterrupt:
+    #         super().stop()

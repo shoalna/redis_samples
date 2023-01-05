@@ -3,6 +3,7 @@ import queue
 import threading
 import time
 from abc import ABC, abstractmethod
+from sanic.log import logger
 
 
 _sentinel = "__STOP__"
@@ -21,7 +22,7 @@ class ThreadRunner(ABC):
 
     @ abstractmethod
     def run(self):
-        pass
+        ...
 
     def stop(self):
         self.stop_event.set()
@@ -52,22 +53,26 @@ class Subscriber(SubscribeRunner):
         self.thread.start()
 
     def run(self):
-        # while not self.stop_event.is_set():
-        #     for message in self.pubsub.listen():
-        #         if message["data"] == 0:
-        #             continue
+        try:
+            while not self.stop_event.is_set():
+                msg = self.pubsub.get_message(
+                    ignore_subscribe_messages=True,
+                    timeout=None,
+                )
+                if msg:
+                    print(f"Predictor.Subscriber get: {msg['data'].decode()}")
+                    self.target_queue.put(msg["data"])
+        except KeyboardInterrupt:
+            # raise
+            logger.warning("Killing Subscriber...")
+            # print("Killing Subscriber...")
+        finally:
+            # print("Subscriber do die")
+            self.target_queue.put(_sentinel)
+            self.stop()
+            # logger.warning("Subscriber dead")
 
-        #         print(f"Subscriber get message: {message}")
-        #         data = message["data"]
-        #         self.target_queue.put(data)
-
-        while not self.stop_event.is_set():
-            msg = self.pubsub.get_message(
-                ignore_subscribe_messages=True,
-                timeout=None,
-            )
-            if msg:
-                print(f"Predictor.Subscriber get: {msg['data'].decode()}")
-                self.target_queue.put(msg["data"])
-            # time.sleep(0.1)
-            # print("Subscriber looping...")
+    # def stop(self):
+    #     print("###### Killing Subscriber ######")
+    #     self.target_queue.put(_sentinel)
+    #     super().stop()

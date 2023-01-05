@@ -9,6 +9,7 @@ import os
 import queue
 import redis
 from signal import SIGTERM
+from sanic.log import logger
 
 """
 1. use event to detect predict finish
@@ -30,7 +31,7 @@ class ApiService(multiprocessing.Process):
     def stop(self):
         os.kill(self.pid, SIGTERM)
         print("Stopping server")
-        self.join()
+        # self.join()
         self.terminate()
 
 
@@ -43,18 +44,30 @@ class PredictorRunner(multiprocessing.Process):
         self.predictor = Predictor(target_queue)
 
     def run(self):
-        self.subscriber.run()
-        self.predictor.run()
+        try:
+            self.subscriber.run()
+            self.predictor.run()
+        except Exception as e:
+            print(f"Get exception in __mina__: {e}")
+            raise
         # self.subscriber = Subscriber(
         #     channel="wait4predict", target_queue=self.q)
         # self.predictor = Predictor(self.q)
 
     def stop(self):
+        # print("Stop __main__")
+        # if self.subscriber.thread.is_alive():
+        #     self.subscriber.stop()
+
+        # if self.predictor.thread.is_alive():
+        #     self.predictor.stop()
         self.predictor.stop()
         self.subscriber.stop()
+        # self.predictor.thread.join()
+        # self.subscriber.thread.join()
 
         os.kill(self.pid, SIGTERM)
-        print("Stopping PredictorRunner")
+        # print("###### Stopping PredictorRunner ######")
         self.join()
         self.terminate()
 
@@ -66,10 +79,18 @@ if __name__ == '__main__':
 
     predictor = PredictorRunner(target_queue=shared_queue)
     predictor.daemon = True
-    service.start()
-    predictor.start()
-
-    import time
-    time.sleep(30)
-    predictor.stop()
-    service.stop()
+    try:
+        service.start()
+        predictor.start()
+        predictor.stop()
+        service.stop()
+    except KeyboardInterrupt:
+        logger.warning("Caught KeyboardInterrupt! Setting stop event...")
+    # finally:
+    #     print("Stop __main__")
+    #     predictor.stop()
+    #     service.stop()
+    # import time
+    # time.sleep(30)
+    # predictor.stop()
+    # service.stop()
