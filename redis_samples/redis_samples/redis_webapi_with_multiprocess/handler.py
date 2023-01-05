@@ -40,7 +40,7 @@ class Predictor(ThreadRunner):
                 break
 
             req = req.decode()
-            print(f"Predictor handling {req}")
+            # print(f"Predictor handling {req}")
             medexam = self.kvs.hget(req, "medexam")
             if medexam is None:
                 raise
@@ -54,7 +54,7 @@ class Predictor(ThreadRunner):
             self.kvs.hset(req, "predicted", json.dumps(res))
 
             # publish ids predicted
-            print(f"Predictor publish {req}")
+            # print(f"Predictor publish {req}")
             self.kvs.publish('predicted', req)
 
         self.stop()

@@ -45,6 +45,9 @@ class PredictorRunner(multiprocessing.Process):
     def run(self):
         self.subscriber.run()
         self.predictor.run()
+        # self.subscriber = Subscriber(
+        #     channel="wait4predict", target_queue=self.q)
+        # self.predictor = Predictor(self.q)
 
     def stop(self):
         self.predictor.stop()

@@ -62,7 +62,12 @@ class Subscriber(SubscribeRunner):
         #         self.target_queue.put(data)
 
         while not self.stop_event.is_set():
-            msg = self.pubsub.get_message(ignore_subscribe_messages=True)
+            msg = self.pubsub.get_message(
+                ignore_subscribe_messages=True,
+                timeout=None,
+            )
             if msg:
+                print(f"Predictor.Subscriber get: {msg['data'].decode()}")
                 self.target_queue.put(msg["data"])
-            time.sleep(0.1)
+            # time.sleep(0.1)
+            # print("Subscriber looping...")
